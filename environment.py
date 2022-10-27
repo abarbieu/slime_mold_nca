@@ -1,6 +1,8 @@
 import numpy as np 
+
 from scipy.stats import uniform
 from scipy.stats import levy_stable
+
 
 # put x in range -w/2 to w/2
 def norm_center(x,w):
