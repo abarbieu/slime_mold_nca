@@ -81,12 +81,12 @@ class CAEnvironment:
 
         # Levy distributed step length
         r = abs(levy_stable.rvs(alpha, beta, size=points))
-        inds = r.argsort()
-        if abs(r[inds[-2]] - r[inds[-1]])/abs(r[inds[-2]] - r[inds[-3]]) > 10:
-            r[inds[-1]] = r[inds[-2]] * 2
+        # inds = r.argsort()
+        # if abs(r[inds[-2]] - r[inds[-1]])/abs(r[inds[-2]] - r[inds[-3]]) > 10:
+        #     r[inds[-1]] = r[inds[-2]] * 2
 
-        x = self.norm_center(np.cumsum(r * np.cos(angle)), shape[0]-1)
-        y = self.norm_center(np.cumsum(r * np.sin(angle)), shape[1]-1)
+        x = np.cumsum(r * np.cos(angle)) % (shape[0]-1)
+        y = np.cumsum(r * np.sin(angle)) % (shape[1]-1)
 
         return np.array([x, y])
 
@@ -203,16 +203,21 @@ class CAEnvironment:
         if cmaps is None:
             cmaps = (cm.copper, cm.gray)
 
-        fig, axes = plt.subplots(ncols=2, figsize=(12, 6))
+        for i in range(len(channels)):
+            fig, axs = plt.subplots(ncols=1,figsize=(12,6))
+            im = axs.matshow(self.channels[channels[i]], cmap=cmaps[i])
+            fig.colorbar(im, fraction=0.045, ax=axs)
 
-        ax1, ax2 = axes
-        food_im = ax1.matshow(self.channels[channels[0]], cmap=cmaps[0])
-        life_im = ax2.matshow(self.channels[channels[1]], cmap=cmaps[1])
+            # fig, axes = plt.subplots(ncols=2, figsize=(12, 6))
 
-        ax1.set_title("Food")
-        ax2.set_title("Life")
-        fig.colorbar(food_im, fraction=0.045, ax=ax1)
-        fig.colorbar(life_im, fraction=0.045, ax=ax2)
+            # ax1, ax2 = axes
+            # food_im = ax1.matshow(self.channels[channels[0]], cmap=cmaps[0])
+            # life_im = ax2.matshow(self.channels[channels[1]], cmap=cmaps[1])
+
+            # ax1.set_title("Food")
+            # ax2.set_title("Life")
+            # fig.colorbar(food_im, fraction=0.045, ax=ax1)
+            # fig.colorbar(life_im, fraction=0.045, ax=ax2)
 
     def gen_video(self, scale=None, fname="test.mp4"):
         if scale is None:

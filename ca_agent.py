@@ -124,16 +124,17 @@ class CAAgent:
             env.channels[1:, coords[0], coords[1]
                          ] = output[2+self.foveal_size:]
 
-            newx = int(min(env.eshape[1]-env.pad-2,
-                           max(coords[0] + output[0], env.pad)))
-            dx = newx - coords[0]
+            dx = output[0] * env.eshape[1]
 
-            newy = int(min(env.eshape[2]-env.pad-2,
-                           max(coords[1] + output[1], env.pad)))
-            dy = newy - coords[1]
+            coords[0] = int(min(env.eshape[1]-env.pad-2,
+                                max(coords[0] + dx, env.pad)))
 
-            coords[0] += dx
-            coords[1] += dy
+            dy = output[1] * env.eshape[2]
+
+            coords[1] = int(min(env.eshape[2]-env.pad-2,
+                                max(coords[1] + dy, env.pad)))
+
+            # print(dx, dy, "\t", output[0], output[1], env.eshape)
 
             foveal_mem = np.array(output[2:self.foveal_size+2])
             if log:
@@ -147,7 +148,6 @@ class CAAgent:
                 running = tot_dist < max_dist
             elif max_steps is not None:
                 running = tot_steps < max_steps
-
         if log:
             env.add_state_to_video()
             return food_count, coords_hist

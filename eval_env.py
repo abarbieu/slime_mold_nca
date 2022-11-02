@@ -32,7 +32,9 @@ def load_tests():
         envs[fmap_k] = {}
         for lmap_i in life_maps[fmap_k].keys():
             env = caenv.CAEnvironment()
+            env.update_shape((6, 32, 32))
             env.set_channel(env.food_i, food_maps[fmap_k])
             env.set_channel(env.life_i, life_maps[fmap_k][lmap_i])
             envs[fmap_k][lmap_i] = env
+            env.display()
     return envs
