@@ -16,7 +16,9 @@ class CAAgent:
 
     # apply_rules must be in the form f()
 
-    def __init__(self, kernel="von_n"):
+    def __init__(self, id, kernel="von_n"):
+        self.id = id
+        self.kernelid = kernel
         # ----- Neighborhood/Channel Parameters -----
         moore = (np.array([1,  1,  1,  0,  0,  -1, -1, -1]),
                  np.array([-1,  0,  1, -1,  1,  -1,  0,  1]))  # Moore neigh indices
@@ -38,6 +40,19 @@ class CAAgent:
             self.kernel_full = von_n_f  # Incliudes center
 
         self.n_neighs = len(self.kernel[0])
+
+    def display(self):
+        return ("CAAgent ID: {0}" +
+                "\n\tKERNEL: {1}" +
+                "\n\tAGENT_TYPE: {2}" +
+                "{3}").format(self.id, self.kernelid,
+                              'foveal_walk' if self.apply_walk is not None else 'slime mold',
+                              "\n\t\tFOVEAL_CHs: {0}\n\t\tSPATIAL_CHs: {1}".format(self.foveal_size, self.n_spatial_chs) if self.apply_walk is not None else "")
+        # (f"CAAgent, ID: {self.id}" +
+        #  "\n\tAGENT TYPE: " +
+        #  f"{'foveal walk' if self.apply_rules is None else('slime_mold' if self.apply_walk is None else 'no ruleset')}" +
+        #  f"{f'\n\t\tfoveal_size: {self.foveal_size}\n\t\tn_spatial_channels: {self.n_spatial_chs}' if self.apply_walk is not None else ''}"
+        #  "\n\tKERNEL: {self.kernelid}\n\t")
 
     def set_rule_func(self, func):
         self.apply_rules = func

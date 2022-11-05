@@ -42,6 +42,9 @@ class CAEnvironment:
     # food_transfer_rate = 1  # Amount of life transferrable by 1 unit of food
     # max_life = 1
 
+    def __init__(self, id):
+        self.id = id
+
     vid_channels = (food_i, life_i)
     vid_cmaps = [None] * 2
 
@@ -204,9 +207,10 @@ class CAEnvironment:
             cmaps = (cm.copper, cm.gray)
 
         for i in range(len(channels)):
-            fig, axs = plt.subplots(ncols=1,figsize=(12,6))
+            fig, axs = plt.subplots(ncols=1, figsize=(12, 6))
             im = axs.matshow(self.channels[channels[i]], cmap=cmaps[i])
             fig.colorbar(im, fraction=0.045, ax=axs)
+            axs.set_title(self.id)
 
             # fig, axes = plt.subplots(ncols=2, figsize=(12, 6))
 
@@ -219,9 +223,10 @@ class CAEnvironment:
             # fig.colorbar(food_im, fraction=0.045, ax=ax1)
             # fig.colorbar(life_im, fraction=0.045, ax=ax2)
 
-    def gen_video(self, scale=None, fname="test.mp4"):
+    def gen_video(self, speed=1, scale=None, fname="test.mp4"):
         if scale is None:
             scale = 512/self.esize
+        # for i in range(len(self.frames))
         return gen_vid(self.frames, scale, fname=fname)
 
         # fig, axs = plt.subplots(2, figsize=(6, 4))

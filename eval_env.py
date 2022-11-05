@@ -30,11 +30,14 @@ def load_tests():
     envs = {}
     for fmap_k in food_maps.keys():
         envs[fmap_k] = {}
-        for lmap_i in life_maps[fmap_k].keys():
-            env = caenv.CAEnvironment()
+        for lmap_k in life_maps[fmap_k].keys():
+            env = caenv.CAEnvironment(id=f"test_F_{fmap_k}-L_{lmap_k}")
             env.update_shape((6, 32, 32))
             env.set_channel(env.food_i, food_maps[fmap_k])
-            env.set_channel(env.life_i, life_maps[fmap_k][lmap_i])
-            envs[fmap_k][lmap_i] = env
-            env.display()
+            env.set_channel(env.life_i, life_maps[fmap_k][lmap_k])
+            envs[fmap_k][lmap_k] = env
     return envs
+
+
+def negative_flow_test(env: caenv.CAEnvironment):
+    pass
