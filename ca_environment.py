@@ -208,7 +208,12 @@ class CAEnvironment:
 
         for i in range(len(channels)):
             fig, axs = plt.subplots(ncols=1, figsize=(12, 6))
-            im = axs.matshow(self.channels[channels[i]], cmap=cmaps[i])
+            print(len(cmaps))
+            if i >= len(cmaps):
+                cmap = cm.gray
+            else:
+                cmap = cmaps[i]
+            im = axs.matshow(self.channels[channels[i]], cmap=cmap)
             fig.colorbar(im, fraction=0.045, ax=axs)
             axs.set_title(self.id)
 
