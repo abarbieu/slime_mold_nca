@@ -12,6 +12,7 @@ from graphics import grid_image, gen_vid
 
 
 class CAEnvironment:
+    # put into a config file, save with each run
     food_i = 0  # Channel index of food
     life_i = 1  # Channel index of life
     hidden_i = 2  # Index of first hidden channel
@@ -58,6 +59,14 @@ class CAEnvironment:
         if new_shape[1] != new_shape[2]:
             print(bcolors.WARNING +
                   "ca_environment.py:update_shape: Unknown behavior for non-square envs" + bcolors.ENDC)
+        if n_hidden_chs >= new_shape[0]:
+            print(bcolors.WARNING +
+                  "ca_environment.py:update_shape: Shape must have at least n_hidden_chs+1 channels" + bcolors.ENDC)
+            return
+        if (new_shape[0] - n_hidden_chs) == 1:
+            self.hidden_i = 1
+            self.life_i = None
+
         self.n_channels = new_shape[0]
         self.n_hidden = n_hidden_chs
         self.hidden_i = new_shape[0] - n_hidden_chs
@@ -67,7 +76,6 @@ class CAEnvironment:
                 self.food_i = None
             else:
                 self.food_i = 0
-
         self.esize = new_shape[1]
         self.cutsize = self.esize-2*self.pad
         self.eshape = new_shape
@@ -77,6 +85,13 @@ class CAEnvironment:
         x -= x.min()
         x *= w/x.max()
         return x
+
+    def add_noise_to_ch(self, chs=[None], magnitude=0.1):
+        if chs[0] is None:
+            chs = [self.hidden_i]
+        new_grid = (np.random.random(self.channels[chs].size)
+                    * magnitude).reshape((len(chs), *self.eshape[1:]))
+        self.channels[chs] += new_grid
 
     def get_levy_dust(self, shape: tuple, points: int, alpha: float, beta: float) -> np.array:
         # uniformly distributed angles
@@ -208,7 +223,6 @@ class CAEnvironment:
 
         for i in range(len(channels)):
             fig, axs = plt.subplots(ncols=1, figsize=(12, 6))
-            print(len(cmaps))
             if i >= len(cmaps):
                 cmap = cm.gray
             else:

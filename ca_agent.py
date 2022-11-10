@@ -11,8 +11,8 @@ class CAAgent:
 
     # For random walk agents
     apply_walk = None
-    foveal_size = 4  # arbitrary for now
-    n_spatial_chs = 3  # arbitrary for now
+    foveal_size = 1  # arbitrary for now
+    n_spatial_chs = 2  # arbitrary for now
 
     # apply_rules must be in the form f()
 
@@ -96,7 +96,7 @@ class CAAgent:
         if log:
             env.add_state_to_video()
 
-    def apply_walk_to_env(self, env: caenv.CAEnvironment, max_steps=None, max_dist=None, log=False, vid_speed=10):
+    def apply_walk_to_env(self, env: caenv.CAEnvironment, stride=None, max_steps=None, max_dist=None, step_penalty=None, log=False, vid_speed=10):
         '''
         A walk takes as input:
             A "foveal" set of memory channels (output of the NN)
@@ -107,7 +107,13 @@ class CAAgent:
             The new foveal memory, passed to the next iteration
             A spatial memory to be stored in the center of the neighborhood
         The quality of a walk is judged by how much food it gathers in a set number of steps (or a set total distance travelled)
+        Step penalty is a constant distance added to each step, so that taking many steps is more costly than one large one
+            It should scale with the size of the environment and max_dist (it doesn't affect max_steps)
         '''
+        if stride is None:
+            stride = env.esize/2
+        if max_dist is not None and step_penalty is None:
+            step_penalty = (max_dist/env.esize) * 0.1
         if self.n_spatial_chs > env.n_hidden:
             print(bcolors.FAIL + "ca_agent.py:apply_walk_to_env: Must apply to an environment with n_hidden channels == agents n_spatial channels" + bcolors.ENDC)
         if self.apply_walk is None:
@@ -127,41 +133,49 @@ class CAAgent:
         foveal_mem = np.random.random(self.foveal_size)
         coords_hist = np.array([coords])
         food_count = 0
+
         while running:
-            food_count += env.channels[env.food_i, coords[0], coords[1]]
-            env.channels[env.food_i, coords[0], coords[1]] = 0
+            within_env = (coords[0] > env.pad-1 and coords[0] < env.eshape[1] and
+                          coords[1] > env.pad-1 and coords[1] < env.eshape[1])
+            if not within_env:
+                food_count -= 1
+                input = np.zeros(env.n_channels * len(self.kernel_full[0]))
+            else:
+                food_count += env.channels[env.food_i, coords[0], coords[1]]
+                env.channels[env.food_i, coords[0], coords[1]] = 0
 
-            input = env.channels[:, self.kernel_full[0] + coords[0],
-                                 self.kernel_full[1] + coords[1]]
+                input = (env.channels[:, self.kernel_full[0] + coords[0],
+                                      self.kernel_full[1] + coords[1]]).flatten()
 
-            output = self.apply_walk(input.flatten(), foveal_mem, env)
+            output = self.apply_walk(
+                input, foveal_mem, self.n_spatial_chs, env)
+            if within_env:
+                env.channels[env.hidden_i:, coords[0], coords[1]
+                             ] = output[2+self.foveal_size:]
+                print("out ", output[2+self.foveal_size:])
+            dx = output[0] * stride
+            coords[0] = int(coords[0] + dx)
+            dy = output[1] * stride
+            coords[1] = int(coords[1] + dy)
 
-            env.channels[1:, coords[0], coords[1]
-                         ] = output[2+self.foveal_size:]
-
-            dx = output[0] * env.eshape[1]
-
-            coords[0] = int(min(env.eshape[1]-env.pad-2,
-                                max(coords[0] + dx, env.pad)))
-
-            dy = output[1] * env.eshape[2]
-
-            coords[1] = int(min(env.eshape[2]-env.pad-2,
-                                max(coords[1] + dy, env.pad)))
+            # coords[1] = int(min(env.eshape[2]-env.pad-2,
+            #                     max(coords[1] + dy, env.pad)))
 
             # print(dx, dy, "\t", output[0], output[1], env.eshape)
 
             foveal_mem = np.array(output[2:self.foveal_size+2])
+
             if log:
                 coords_hist = np.append(coords_hist, [coords], axis=0)
 
             if log and vid_speed < 10 and tot_steps % (math.pow(2, vid_speed)) == 0:
                 env.add_state_to_video()
 
-            tot_steps += 1
             if max_dist is not None:
+                tot_dist += dx + dy + step_penalty
                 running = tot_dist < max_dist
             elif max_steps is not None:
+                tot_steps += 1
                 running = tot_steps < max_steps
         if log:
             env.add_state_to_video()
