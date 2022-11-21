@@ -1,29 +1,22 @@
 import matplotlib.cm as cm
-import matplotlib.pyplot as plt
 import matplotlib as mpl
-# import PIL.Image
-# import PIL.ImageDraw
 import numpy as np
-# from IPython.display import Video, Image, HTML, clear_output
 from moviepy.video.io.ffmpeg_writer import FFMPEG_VideoWriter
 
 import tensorflow as tf
 
-from bcolors import bcolors
-
-
-def zoom(img, scale=4):
-    img = np.repeat(img, scale, 0)
-    img = np.repeat(img, scale, 1)
-    return img
+import os
 
 
 class VideoWriter:
-    def __init__(self, filename=None, fps=30.0, **kw):
+    def __init__(self, filename=None, scale=None, fps=30.0, **kw):
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        self.scale = scale
         self.writer = None
         self.params = dict(filename=filename, fps=fps, **kw)
+        self.frames = np.array([])
 
-    def add(self, img):
+    def add_img(self, img):
         img = np.asarray(img)
         if self.writer is None:
             h, w = img.shape[:2]
@@ -33,6 +26,53 @@ class VideoWriter:
         if len(img.shape) == 2:
             img = np.repeat(img[..., None], 3, -1)
         self.writer.write_frame(img)
+
+    # Creates a heat map image from a 2d numpy array and adds it to the video
+    def add_grid(self, grid, scale=None, cmap="viridis"):
+        if self.scale is None:
+            if scale is None:
+                # 512 is the default size of the video, grids smaller than this will be upscaled
+                self.scale = 512/grid.shape[1]
+            else:
+                self.scale = scale
+        norm = mpl.colors.Normalize(grid.min(), grid.max())
+        m = cm.ScalarMappable(norm=norm, cmap=cmap)
+        img = m.to_rgba(grid)
+        self.add_img(self.to_rgb(self.zoom(np.array(img), scale)))
+
+    def add_concat_grids(self, grids, scale=None, cols=3, cmaps=None):
+        if cmaps is None:
+            cmaps = ["viridis"]*len(grids)
+
+        rows = (len(grids)-1)//cols+1
+        h, w = grids[0].shape[:2]
+        grid = np.zeros((h*rows, w*cols, 4))
+        for i, (g, cmap) in enumerate(zip(grids, cmaps)):
+            norm = mpl.colors.Normalize(g.min(), g.max())
+            m = cm.ScalarMappable(norm=norm, cmap=cmap)
+            grid[i//cols*h:(i//cols+1)*h, i %
+                 cols*w:(i % cols+1)*w] = m.to_rgba(g)
+            # self.to_alpha(
+            #     self.zoom(self.to_rgb(m.to_rgba(g, cmap)), self.scale))
+        if scale is None:
+            # 512 is the default size of the video, grids smaller than this will be upscaled
+            self.scale = 512/grid.shape[1]
+        else:
+            self.scale = scale
+        self.add_img(self.to_rgb(self.zoom(grid, self.scale)))
+
+    def to_alpha(self, x):
+        return tf.clip_by_value(x[..., 3:4], 0.0, 1.0)
+
+    def to_rgb(self, x):
+        # assume rgb premultiplied by alpha
+        rgb, a = x[..., :3], self.to_alpha(x)
+        return 1.0-a+rgb
+
+    def zoom(self, img, scale=4):
+        img = np.repeat(img, scale, 0)
+        img = np.repeat(img, scale, 1)
+        return img
 
     def close(self):
         if self.writer:
@@ -45,54 +85,31 @@ class VideoWriter:
         self.close()
 
 
-def to_alpha(x):
-    return tf.clip_by_value(x[..., 3:4], 0.0, 1.0)
+# def grid_plot(grid, cmap=None):
+#     plt.imshow(grid, cmap=cmap, interpolation='nearest')
+#     plt.colorbar()
+#     plt.show()
 
 
-def to_rgb(x):
-    # assume rgb premultiplied by alpha
-    rgb, a = x[..., :3], to_alpha(x)
-    return 1.0-a+rgb
+# def grid_plimage(grid, cmap=cm.hot):
+#     plt.clf()
+#     fig = plt.gcf()
+#     plt.imshow(grid, cmap=cmap, interpolation='nearest')
+#     plt.colorbar()
+#     fig = plt.gcf()
+#     fig.canvas.draw()
+#     # Now we can save it to a numpy array.
+#     data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+#     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+#     # buf = io.BytesIO()
+#     # plt.savefig(buf)
+#     # buf.seek(0)
+#     return data
 
 
-# Creates a heat map image from a 2d numpy array
-def grid_image(grid, cmap=None):
-    norm = mpl.colors.Normalize(grid.min(), grid.max())
-    m = cm.ScalarMappable(norm=norm, cmap=cmap)
-    return m.to_rgba(grid)
-
-
-def grid_plot(grid, cmap=None):
-    plt.imshow(grid, cmap=cmap, interpolation='nearest')
-    plt.colorbar()
-    plt.show()
-
-
-def grid_plimage(grid, cmap=cm.hot):
-    plt.clf()
-    fig = plt.gcf()
-    plt.imshow(grid, cmap=cmap, interpolation='nearest')
-    plt.colorbar()
-    fig = plt.gcf()
-    fig.canvas.draw()
-    # Now we can save it to a numpy array.
-    data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-    # buf = io.BytesIO()
-    # plt.savefig(buf)
-    # buf.seek(0)
-    return data
-
-
-def gen_vid(frames, scale=None, fname="test.mp4"):
-    if frames is None:
-        print(bcolors.FAIL + "graphics.py: No Frames Found for Video" + bcolors.ENDC)
-        return
-    with VideoWriter(fname) as vid:
-        for f in frames:
-            vid.add(to_rgb(zoom(np.array(f), scale)))
-    return fname
-
+# def rprint(text):
+#     sys.stdout.write("\r"+text)
+#     sys.stdout.flush()
 
 # def np2pil(a):
 #   if a.dtype in [np.float32, np.float64]:

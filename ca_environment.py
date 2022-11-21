@@ -7,6 +7,7 @@ from PIL import Image
 from scipy.stats import uniform
 from scipy.stats import levy_stable
 from bcolors import bcolors
+import os
 
 from graphics import grid_image, gen_vid
 
@@ -57,6 +58,7 @@ class CAEnvironment:
         Resets environment
         '''
         if new_shape[1] != new_shape[2]:
+            # TODO: Update these to raise value errors etc.
             print(bcolors.WARNING +
                   "ca_environment.py:update_shape: Unknown behavior for non-square envs" + bcolors.ENDC)
         if n_hidden_chs >= new_shape[0]:
@@ -242,10 +244,10 @@ class CAEnvironment:
             # fig.colorbar(food_im, fraction=0.045, ax=ax1)
             # fig.colorbar(life_im, fraction=0.045, ax=ax2)
 
-    def gen_video(self, speed=1, scale=None, fname="test.mp4"):
+    def save_video(self, speed=1, scale=None, fname="./test.mp4"):
+        os.makedirs(os.path.dirname(fname), exist_ok=True)
         if scale is None:
             scale = 512/self.esize
-        # for i in range(len(self.frames))
         return gen_vid(self.frames, scale, fname=fname)
 
         # fig, axs = plt.subplots(2, figsize=(6, 4))
