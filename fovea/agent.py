@@ -66,36 +66,6 @@ class CAAgent:
     def n_walk_outputs(self):
         return 2 + self.n_spatial_chs + self.foveal_size
 
-    # Stochastically applies agent to every alive cell
-    # !! Rules must be independent, ie. application order doesn't matter
-    def apply_to_env(self, env: caenv.CAEnvironment, log=False, vid_speed=10, dropout=0.5):
-        if self.apply_rules is None:
-            print(bcolors.WARNING +
-                  "ca_agent.py:apply_to_env: Must set rule function before applying to an environment" + bcolors.ENDC)
-            return
-
-        if dropout <= 1:
-            inds = np.random.choice(
-                (env.cutsize)*(env.cutsize), (int)((env.cutsize)*(env.cutsize)*dropout))
-        else:
-            inds = np.arange(0, env.cutsize*env.cutsize)
-        coords = np.unravel_index(inds, (env.cutsize, env.cutsize))
-
-        total_steps = 0
-        for i, j in zip(coords[0]+1, coords[1]+1):
-            input = env.channels[:, self.kernel_full[0] + i,
-                                 self.kernel_full[1]+j]
-            if input[env.life_i].sum() > 0:
-                desires = self.apply_rules(input.flatten(), env)
-                env.update_chunk(i, j, desires)
-
-                if log and vid_speed < 10 and total_steps % (math.pow(2, vid_speed)) == 0:
-                    env.add_state_to_video()
-
-                total_steps += 1
-        if log:
-            env.add_state_to_video()
-
     def apply_walk_to_env(self, env: caenv.CAEnvironment, stride=None, max_steps=None, max_dist=None, step_penalty=None, log=False, vid_speed=10):
         '''
         A walk takes as input:
@@ -182,23 +152,3 @@ class CAAgent:
             return food_count, coords_hist
 
         return food_count
-
-    # Vid speed of 10 generates a frame for every full application of an agent
-    # def apply_agent_n(agent, env, n=10, apply_until_dead=False, gen_frames=False, vid_speed=10, constraints=constraints):
-    #     frames = None
-    #     i = 0
-    #     fitness = 0
-    #     running = True
-    #     # tot_delta=0
-    #     while running:
-    #         temp_frames = apply_agent(
-    #             agent, env, gen_frames, vid_speed, constraints=constraints)
-    #         if gen_frames:
-    #         frames = add_frames(frames, temp_frames)
-
-    #         if apply_until_dead:
-    #         running = env[LIFE].sum() > 0
-    #         else:
-    #         running = i < n
-    #         i += 1
-    #     return frames
