@@ -1,20 +1,21 @@
 import re
 import os
 import configparser
-from encasm.env import CAEnvironment
+from encasm.env import PetriDish
+import matplotlib.pyplot as plt
 
 
 def get_env_shape(folder):
     # Parses the first .config file contained in the given folder,
-    # returns a tuple of the environment shape
+    # returns a tuple of the environment shape and the config object
     for entry in os.scandir(path=os.fsencode(folder)):
         if entry.name.endswith(b".config"):
             config = configparser.ConfigParser()
             config.read(entry.path.decode())
-            return (int(config["Environment"]["width"]), int(config["Environment"]["height"]))
+            return (int(config["Environment"]["width"]), int(config["Environment"]["height"])), config
 
 
-def load_envs(folder, shape):
+def gen_env_dict(folder, config):
     # Loads folder into a dictonary of environments of the given shape
 
     patt = "F_(\d+)(-L_(\d+))?.png"
@@ -26,7 +27,6 @@ def load_envs(folder, shape):
             mtch = re.search(patt, str(entry.name))
             if mtch is not None:
                 grps = mtch.groups()
-
                 # If food map index is not in the lifemap dictionary, add it
                 if grps[0] not in life_maps:
                     life_maps[grps[0]] = {}
@@ -41,11 +41,13 @@ def load_envs(folder, shape):
     for fmap_k in food_maps.keys():
         envs[fmap_k] = {}
         for lmap_k in life_maps[fmap_k].keys():
-            env = CAEnvironment(
-                id=f"test_{shape[0]}x{shape[1]}_F_{fmap_k}-L_{lmap_k}")
-            env.update_shape(shape)
-            env.set_channel(env.food_i, food_maps[fmap_k])
-            env.set_channel(env.life_i, life_maps[fmap_k][lmap_k])
+            env = PetriDish(
+                id=f"test_F_{fmap_k}-L_{lmap_k}", config=config["Environment"])
+            print(f"test_F_{fmap_k}-L_{lmap_k}")
+            # TODO Figure out what the hell is going on, why is this null?
+            plt.matshow(food_maps[fmap_k])
+            env.food = food_maps[fmap_k]
+            env.life = life_maps[fmap_k][lmap_k]
             envs[fmap_k][lmap_k] = env
     return envs
 
@@ -56,5 +58,8 @@ def load_tests(folder):
     tests = {}
     for entry in os.scandir(path=os.fsencode(folder)):
         if entry.is_dir():
-            shape = get_env_shape(entry.path.decode())
-            tests[entry.name.decode()] = load_envs(entry.path.decode(), shape)
+            shape, config = get_env_shape(entry.path.decode())
+
+            tests[entry.name.decode()] = gen_env_dict(
+                entry.path.decode(), shape, config)
+    return tests

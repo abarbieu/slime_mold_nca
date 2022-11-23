@@ -4,7 +4,7 @@ from scipy.stats import uniform
 from scipy.stats import levy_stable
 
 
-def get_levy_dust(self, shape: tuple, points: int, alpha: float, beta: float, pad: int = 1) -> np.array:
+def levy_dust(shape: tuple, points: int, alpha: float, beta: float, pad: int = 1) -> np.array:
     """Generate a levy dust cloud of points in a given shape padded by pad
 
     Parameters:
@@ -42,6 +42,7 @@ def discretize_levy_dust(dust: np.array, shape: tuple, pad: int = 1) -> np.array
         np.array: Grid of shape shape representing the density of points in the dust cloud
     """
     dust = np.array(dust, dtype=np.int64)
+    print(dust.shape)
     dust, density = np.unique(dust, axis=0, return_counts=True)
 
     channel = np.zeros(shape)
