@@ -1,4 +1,5 @@
 import numpy as np
+import io
 import matplotlib.pyplot as plt
 from configparser import SafeConfigParser
 import encasm.utils as utils
@@ -86,12 +87,14 @@ class PetriDish:
         self.food += utils.discretize_levy_dust(
             dust, (self.width, self.height), self.config.getint("pad", 1))
 
-    def display(self, chs: list = ["food", "life", "resv"], cmaps: list = ["copper", "gray", "hot"], cols: int = 3):
+    def display(self, chs: list = ["food", "life", "resv"], cmaps: list = ["copper", "gray", "hot"], cols: int = 3, retbuf: bool = False):
         """Displays the specified channels of the environment.
 
         Parameters:
             chs (list): The list of channels to display
             cmaps (list): The list of colormaps to use for each channel
+            cols (int): The number of columns to display
+            retbuf (bool): Whether to return the buffer or not
         """
         # Ensures each channel has a color, repeats the last color if necessary
         if len(cmaps) < len(chs):
@@ -111,7 +114,10 @@ class PetriDish:
             # Creates a colorbar for each subplot that is the same size as the subplot with padding
             fig.colorbar(ax.images[0], ax=ax, fraction=0.045)
             # fig.colorbar(ax.images[0], ax=ax, pad=0.01)
-
+        if retbuf:
+            img_buf = io.BytesIO()
+            plt.savefig(img_buf, format='png')
+            return img_buf
 
 
 # rows = int(np.ceil(len(chs) / cols))

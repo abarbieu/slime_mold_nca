@@ -28,7 +28,7 @@ class VideoWriter:
         self.writer.write_frame(img)
 
     # Creates a heat map image from a 2d numpy array and adds it to the video
-    def add_grid(self, grid, scale=None, cmap="viridis"):
+    def add_grid(self, grid, scale=None, cmap="hot"):
         if self.scale is None:
             if scale is None:
                 # 512 is the default size of the video, grids smaller than this will be upscaled
@@ -42,7 +42,7 @@ class VideoWriter:
 
     def add_concat_grids(self, grids, scale=None, cols=3, cmaps=None):
         if cmaps is None:
-            cmaps = ["viridis"]*len(grids)
+            cmaps = ["hot"]*len(grids)
 
         rows = (len(grids)-1)//cols+1
         h, w = grids[0].shape[:2]
@@ -60,6 +60,10 @@ class VideoWriter:
         else:
             self.scale = scale
         self.add_img(self.to_rgb(self.zoom(grid, self.scale)))
+
+    def add_img_buf(self, img_buf):
+        img = tf.image.decode_png(img_buf, channels=3)
+        self.add_img(img)
 
     def to_alpha(self, x):
         return tf.clip_by_value(x[..., 3:4], 0.0, 1.0)
