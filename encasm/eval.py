@@ -1,6 +1,8 @@
 import re
 import os
 import configparser
+import numpy as np
+from PIL import Image
 from encasm.env import PetriDish
 import matplotlib.pyplot as plt
 
@@ -12,7 +14,18 @@ def get_env_shape(folder):
         if entry.name.endswith(b".config"):
             config = configparser.ConfigParser()
             config.read(entry.path.decode())
-            return (int(config["Environment"]["width"]), int(config["Environment"]["height"])), config
+            #(int(config["Environment"]["width"]), int(config["Environment"]["height"])),
+            return config
+
+
+def img_to_grid(img):
+    # Converts an image to a grid of 0s and 1s
+    img = Image.open(img)
+    img = np.asarray(img)
+    mask = img[..., -1] != 0
+    a = np.zeros(mask.shape)
+    a[mask] = 1
+    return a
 
 
 def gen_env_dict(folder, config):
@@ -43,11 +56,8 @@ def gen_env_dict(folder, config):
         for lmap_k in life_maps[fmap_k].keys():
             env = PetriDish(
                 id=f"test_F_{fmap_k}-L_{lmap_k}", config=config["Environment"])
-            print(f"test_F_{fmap_k}-L_{lmap_k}")
-            # TODO Figure out what the hell is going on, why is this null?
-            plt.matshow(food_maps[fmap_k])
-            env.food = food_maps[fmap_k]
-            env.life = life_maps[fmap_k][lmap_k]
+            env.food = img_to_grid(food_maps[fmap_k])
+            env.life = img_to_grid(life_maps[fmap_k][lmap_k])
             envs[fmap_k][lmap_k] = env
     return envs
 
@@ -58,8 +68,8 @@ def load_tests(folder):
     tests = {}
     for entry in os.scandir(path=os.fsencode(folder)):
         if entry.is_dir():
-            shape, config = get_env_shape(entry.path.decode())
+            config = get_env_shape(entry.path.decode())
 
             tests[entry.name.decode()] = gen_env_dict(
-                entry.path.decode(), shape, config)
+                entry.path.decode(), config)
     return tests

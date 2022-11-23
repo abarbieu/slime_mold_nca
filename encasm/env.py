@@ -54,7 +54,11 @@ class PetriDish:
         Parameters:
             env (PetriDish): The environment to copy
         """
-        return cls(new_id, other_env.config)
+        env = cls(new_id, other_env.config)
+        env.food = np.copy(other_env.food)
+        env.life = np.copy(other_env.life)
+        env.resv = np.copy(other_env.resv)
+        return env
 
 
     def init_channels(self):
