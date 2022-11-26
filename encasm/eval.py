@@ -20,9 +20,10 @@ def get_env_shape(folder):
 
 def img_to_grid(img):
     # Converts an image to a grid of 0s and 1s
-    img = Image.open(img)
-    img = np.asarray(img)
-    mask = img[..., -1] != 0
+    img = np.asarray(Image.open(img))
+    if len(img.shape) > 2:
+        img = img[:, :, -1]
+    mask = img != 0
     a = np.zeros(mask.shape)
     a[mask] = 1
     return a
