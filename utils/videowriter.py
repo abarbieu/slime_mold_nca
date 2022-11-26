@@ -1,5 +1,6 @@
 import matplotlib.cm as cm
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 from moviepy.video.io.ffmpeg_writer import FFMPEG_VideoWriter
 
@@ -28,19 +29,15 @@ class VideoWriter:
         self.writer.write_frame(img)
 
     # Creates a heat map image from a 2d numpy array and adds it to the video
-    def add_grid(self, grid, scale=None, cmap="hot"):
-        if self.scale is None:
-            if scale is None:
-                # 512 is the default size of the video, grids smaller than this will be upscaled
-                self.scale = 512/grid.shape[1]
-            else:
-                self.scale = scale
+    def add_grid(self, grid, size=750, cmap="hot"):
+        self.scale = -(size//-grid.shape[1])
         norm = mpl.colors.Normalize(grid.min(), grid.max())
         m = cm.ScalarMappable(norm=norm, cmap=cmap)
         img = m.to_rgba(grid)
-        self.add_img(self.to_rgb(self.zoom(np.array(img), scale)))
+        self.add_img(self.to_rgb(self.zoom(np.array(img), self.scale)))
 
-    def add_concat_grids(self, grids, scale=None, cols=3, cmaps=None):
+    def add_concat_grids(self, grids, size=750, cols=3, cmaps=None):
+
         if cmaps is None:
             cmaps = ["hot"]*len(grids)
 
@@ -54,11 +51,7 @@ class VideoWriter:
                  cols*w:(i % cols+1)*w] = m.to_rgba(g)
             # self.to_alpha(
             #     self.zoom(self.to_rgb(m.to_rgba(g, cmap)), self.scale))
-        if scale is None:
-            # 512 is the default size of the video, grids smaller than this will be upscaled
-            self.scale = 512/grid.shape[1]
-        else:
-            self.scale = scale
+        self.scale = -(size//-grid.shape[1])
         self.add_img(self.to_rgb(self.zoom(grid, self.scale)))
 
     def add_img_buf(self, img_buf):
