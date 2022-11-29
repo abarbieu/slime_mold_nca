@@ -9,22 +9,26 @@ class PetriDish:
     """A Petri dish is a multi channeled container for populations of cells.
 
     Attributes:
-        esize (int): The size of each channel of the environment (W x H)
-        channels (np.array): A 3d array (W x H x n_hidden + 3) of the following channels:
-            0: food, the nutrient concentration of each position in the environment
-            1: life, how alive each cell is (sparse)
-            2: resv, the nutrients passing through each live cell's resevoir (resv ⊆ life)
-            3+: hidden, any other channels that may be used to store info
-        food (np.array): A reference to the food channel
-        life (np.array): A reference to the life channel
-        resv (np.array): A reference to the resv channel
-        hidden (np.array): A reference to a list of hidden channels
-        n_hidden (int): The number of hidden channels
-        alpha (float): Parameter for levy dust distribution
-        beta (float): Parameter for levy dust distribution
-        food_amt (int): Total amount of food in the environment
-        max_food (int): Maximum amount of food in a single cell
+        terrain (np.array): A 2d array (W x H) of the terrain of the environment, where:
+            0: empty
+            1: food
+            2: water
+            3: poison
+            4: sink
+        life (np.array): A 2d array (W x H) of the life of the environment, where:
+            0: empty
+            1: alive
+        resv (np.array): A 2d array (W x H) of the resevoir of life cells
+        hidden (np.array): A 3d array (N x W x H) of the hidden channels of the environment
 
+        attributes stored in the config file:
+            width (int): The width of the environment
+            height (int): The height of the environment
+            n_hidden (int): The number of hidden channels
+            food_amt (int): The amount of food to generate
+            alpha (float): The alpha parameter for the Lévy dust distribution
+            beta (float): The beta parameter for the Lévy dust distribution
+            pad (int): The padding for the Lévy dust distribution
     """
     def __init__(self, id: str, config: SafeConfigParser):
         """Initializes a new Petri dish from a SafeConfigParser object.
@@ -34,6 +38,13 @@ class PetriDish:
         """
         self.id = id
         self.config = config
+
+        self.terrain_vals = {
+            "food": 1,
+            "water": 2,
+            "poison": 3,
+            "sink": 4,
+        }
 
         self.init_channels()
     
@@ -56,10 +67,10 @@ class PetriDish:
             env (PetriDish): The environment to copy
         """
         env = cls(new_id, other_env.config)
-        env.food = np.copy(other_env.food)
+        env.terrain = np.copy(other_env.food)
         env.life = np.copy(other_env.life)
         env.resv = np.copy(other_env.resv)
-        return env
+        env.hidden = np.copy(other_env.hidden)
 
 
     def init_channels(self):
@@ -68,10 +79,24 @@ class PetriDish:
         self.height = self.config.getint("height", 32)
         self.n_hidden = self.config.getint("n_hidden", 4)
         self.n_channels = self.n_hidden + 3
-        self.food = np.zeros((self.width, self.height))
+        self.terrain = np.zeros((self.width, self.height))
         self.life = np.zeros((self.width, self.height))
         self.resv = np.zeros((self.width, self.height))
         self.hidden = np.zeros((self.n_hidden, self.width, self.height))
+
+    def set_channel(self, ch: str, grid: np.array):
+        """Sets the specified channel to the specified grid,
+           if channel is in terrain_vals, updates values present in grid.
+
+        Parameters:
+            ch (str): The channel to set
+            grid (np.array): The grid to set the channel to
+        """
+        if ch in self.terrain_vals:
+            self.terrain[grid > 0] = self.terrain_vals[ch]
+        else:
+            # Otherwise just set the channel attribute
+            setattr(self, ch, grid)
 
     def generate_food(self):
         """Generates a Lévy dust distribution of food in the environment
@@ -87,7 +112,7 @@ class PetriDish:
         self.food += utils.discretize_levy_dust(
             dust, (self.width, self.height), self.config.getint("pad", 1))
 
-    def display(self, chs: list = ["food", "life", "resv"], cmaps: list = ["copper", "gray", "hot"], cols: int = 3, retbuf: bool = False):
+    def display(self, chs: list = ["terrain", "life", "resv"], cmaps: list = ["copper", "gray", "hot"], cols: int = 3, retbuf: bool = False):
         """Displays the specified channels of the environment.
 
         Parameters:
