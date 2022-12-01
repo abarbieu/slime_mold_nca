@@ -31,11 +31,8 @@ def img_to_grid(img):
     # Converts an image to a grid of 0s and 1s
     img = np.asarray(Image.open(img))
     if len(img.shape) > 2:
-        img = img[:, :, -1]
-    mask = img != 0
-    a = np.zeros(mask.shape)
-    a[mask] = 1
-    return a
+        img = img[:, :, -1]  # Get the alpha channel
+    return img > 0
 
 
 def gen_env_dict(folder, config):
