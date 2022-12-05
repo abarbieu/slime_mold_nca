@@ -45,7 +45,7 @@ class PetriDish:
         # black, pastel green, pastel blue, pastel red, pastel purple
         # map_colors = ["#000000", "#b2f2b2", "#b2d8f2", "#f2b2b2", "#f2b2f2"]
         # map_colors = [""#77dd77", "#aec6cf", "#ff6961", "#dda0dd"]
-
+        self.map_cmap = ListedColormap(self.map_colors)
         self.id = id
         self.config = config
 
@@ -76,6 +76,11 @@ class PetriDish:
         env.life = np.copy(other_env.life)
         env.resv = np.copy(other_env.resv)
         env.hidden = np.copy(other_env.hidden)
+        env.food = other_env.fd()
+        env.water = other_env.wt()
+        env.poison = other_env.ps()
+        env.sink = other_env.sk()
+
         return env
 
     @classmethod
@@ -109,6 +114,10 @@ class PetriDish:
         self.n_hidden = self.config.getint("n_hidden", 4)
         self.n_channels = self.n_hidden + 3
         self.map = np.zeros((self.width, self.height))
+        self.food = np.zeros((self.width, self.height))
+        self.water = np.zeros((self.width, self.height))
+        self.poison = np.zeros((self.width, self.height))
+        self.sink = np.zeros((self.width, self.height))
         self.life = np.zeros((self.width, self.height))
         self.resv = np.zeros((self.width, self.height))
         self.hidden = np.zeros((self.n_hidden, self.width, self.height))
@@ -123,6 +132,8 @@ class PetriDish:
         """
         if ch in self.map_keys:
             self.map[grid >= 1] = self.map_keys.index(ch)
+            # sets attribute to grid
+            setattr(self, ch, grid)
         else:
             # Otherwise just set the channel attribute
             setattr(self, ch, grid)
@@ -157,9 +168,12 @@ class PetriDish:
         if len(chs) == 1:
             # If only one channel, just display it
             if chs[0] == "map":
-                plt.matshow(getattr(self, chs[0]), cmap=ListedColormap(self.map_colors))
+                plt.matshow(getattr(self, chs[0]), cmap=self.map_cmap)
+                plt.colorbar(fraction=0.045)
             else:
                 plt.matshow(getattr(self, chs[0]), cmap=cmaps[0])
+                plt.colorbar(fraction=0.045)
+
         else:
             rows = int(np.ceil(len(chs) / cols))
             # Displays a grid of matshow subplots for each channel, with the specified colormap
